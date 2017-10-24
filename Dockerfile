@@ -6,4 +6,4 @@ ADD templates/ /templates/
 ADD generate /root/
 VOLUME /etc/nginx/conf.d
 
-ENTRYPOINT /root/generate
+ENTRYPOINT ["/root/generate"]
