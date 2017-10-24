@@ -59,8 +59,8 @@ def regenerate(args, client):
     print "Container list is {}".format(container_list)
     hosts = sorted(set(filter(None,map(key, client.containers.list()))))
 
-    generate(args, args.dir, "default.conf", hosts)
-    generate(args, "/usr/share/nginx/html", "index.html", hosts)
+    generate(args, args.dir, args.default_template, hosts)
+    generate(args, "/usr/share/nginx/html", args.index_template, hosts)
 
     notify(args, client.containers.list())
 
@@ -102,7 +102,7 @@ def generate_vhost(args, label, containers):
     try:
         t = jinjaenv.get_template("{}.conf".format(hostname))
     except TemplateNotFound:
-        t = jinjaenv.get_template(args.vhost_default_template)
+        t = jinjaenv.get_template(args.vhost_template)
 
     c = list(containers)
 
@@ -123,7 +123,9 @@ def main():
     parser.add_argument("-append-instance-id", help="append instance ID to directory", action='store_true')
     parser.add_argument("-dir", help="directory into which to generate files", default="/etc/nginx/conf.d")
     parser.add_argument("-verbose", help="Verbose output", action='store_true')
-    parser.add_argument("-vhost-default-template", help="Default VHOST template to use", default="vhost.conf")
+    parser.add_argument("-vhost-template", help="Default VHOST template to use", default="vhost.conf")
+    parser.add_argument("-default-template", help="Default server template to use", default="default.conf")
+    parser.add_argument("-index-template", help="Default server template to use", default="index.html")
     args = parser.parse_args()
 
     while True:

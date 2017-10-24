@@ -1,0 +1,7 @@
+<h1>Systems served by this proxy</h1>
+
+<ul>
+{% for label in hosts -%}
+<li><a href="https://{{label}}">{{label}}</a></li>
+{%- endfor %}
+</ul>
