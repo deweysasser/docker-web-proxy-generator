@@ -6,11 +6,12 @@ import time
 import sys
 import itertools
 import traceback
+import signal
 import os
-from jinja2 import Template, Environment, FileSystemLoader, select_autoescape
+from jinja2 import Template, Environment, FileSystemLoader, select_autoescape, TemplateNotFound
 
 jinjaenv = Environment(
-    loader=FileSystemLoader("templates"),
+    loader=FileSystemLoader(["/templates", "templates"]),
     autoescape=select_autoescape(['conf'])
 )
 
@@ -27,13 +28,10 @@ def regenerate(args, client):
             h = c.labels['proxy.host']
         else:
             h = None
-        fport = tport = 80
-        for l in c.labels:
-            if l.startswith("proxy.port."):
-                fport = l[11:]
-                tport = c.labels[l]
 
-        return h, fport
+        return h
+
+    
 
     # Remove all existing files
     map(os.remove, ["{}/{}".format(args.dir, x) for x in os.listdir(args.dir) if x.endswith(".conf")])
@@ -42,21 +40,37 @@ def regenerate(args, client):
     for label, containers in itertools.groupby(sorted(client.containers.list(), key=key), key):
         generate(args, label, map(lambda x: client.api.inspect_container(x.id), containers))
 
+    notify(args, client.containers.list())
+
+
+def notify(args, containers):
+    def notify(c):
+        print "Notifying {} with SIGHUP".format(c.name)
+        c.kill(signal=signal.SIGHUP)
+
+    map(notify, [c for c in containers if "proxy.notify" in c.labels])
+
 
 def generate(args, label, containers):
-    if label[0] is None:
+    if label is None:
         return
 
-    hostname, fromport = label
+    hostname = label
+    fromport = 80
 
-    t = jinjaenv.get_template("{}.conf".format(args.template))
+    try:
+        t = jinjaenv.get_template("{}.conf".format(hostname))
+    except TemplateNotFound:
+        t = jinjaenv.get_template("default.conf")
 
     c = list(containers)
+
+    print "Containers for {}: {}".format(label, ", ".join([x['Name'] for x in containers]))
 
     content = t.render(hostname=hostname, fromport = fromport, containers=c, c1=c[0])
 
     if content != "":
-        filename = "{}/{}_{}.conf".format(args.dir, label[0], label[1])
+        filename = "{}/{}_{}.conf".format(args.dir, hostname, fromport)
         print "Printing to %s" % filename
         with open(filename, "w") as f:
             f.write(content)
@@ -65,10 +79,9 @@ def generate(args, label, containers):
 def main():
     parser = argparse.ArgumentParser(description="Generate conf files from docker")
 
-    parser.add_argument("-template", help="template to call to generate conf files", default="default.conf")
-    parser.add_argument("-dir", help="Directory into which to put files", default="/etc/nginx/conf.d")
     parser.add_argument("-append-instance-id", help="append instance ID to directory", action='store_true')
-
+    parser.add_argument("-dir", help="directory into which to generate files", default="/etc/nginx/conf.d")
+    parser.add_argument("-verbose", help="Verbose output", action='store_true')
     args = parser.parse_args()
 
     while True:
