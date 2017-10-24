@@ -88,7 +88,7 @@ def generate_vhost(args, label, containers):
     try:
         t = jinjaenv.get_template("{}.conf".format(hostname))
     except TemplateNotFound:
-        t = jinjaenv.get_template("vhost.conf")
+        t = jinjaenv.get_template(args.vhost_default_template)
 
     c = list(containers)
 
@@ -109,6 +109,7 @@ def main():
     parser.add_argument("-append-instance-id", help="append instance ID to directory", action='store_true')
     parser.add_argument("-dir", help="directory into which to generate files", default="/etc/nginx/conf.d")
     parser.add_argument("-verbose", help="Verbose output", action='store_true')
+    parser.add_argument("-vhost-default-template", help="Default VHOST template to use", default="vhost.conf")
     args = parser.parse_args()
 
     while True:
