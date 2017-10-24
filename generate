@@ -15,6 +15,18 @@ jinjaenv = Environment(
     autoescape=select_autoescape(['conf'])
 )
 
+
+def exception_ignored(func):
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except Exception as e:
+            traceback.print_exc()
+            print "Function {} threw exception.  Execution continuing".format(func.__name__)
+
+    return wrapper
+            
+
 def hostlabel(c):
     if 'proxy.host' in c.labels:
         return c.labels['proxy.host']
@@ -52,7 +64,7 @@ def regenerate(args, client):
 
     notify(args, client.containers.list())
 
-
+@exception_ignored
 def notify(args, containers):
     def notify(c):
         print "Notifying {} with SIGHUP".format(c.name)
@@ -60,6 +72,7 @@ def notify(args, containers):
 
     map(notify, [c for c in containers if "proxy.notify" in c.labels])
 
+@exception_ignored
 def generate(args, dir, name, hosts):
 
     try:
@@ -78,6 +91,7 @@ def generate(args, dir, name, hosts):
         print "No template found for {}.  Skipping".format(name)
 
 
+@exception_ignored
 def generate_vhost(args, label, containers):
     if label is None:
         return
