@@ -8,6 +8,8 @@ import itertools
 import traceback
 import signal
 import os
+import urllib2
+
 from jinja2 import Template, Environment, FileSystemLoader, select_autoescape, TemplateNotFound
 
 jinjaenv = Environment(
@@ -46,7 +48,7 @@ def regenerate(args, client):
     
 
     # Remove all existing files
-    map(os.remove, ["{}/{}".format(args.dir, x) for x in os.listdir(args.dir) if x.endswith(".conf")])
+    map(os.remove, ["{}/{}".format(args.conf_dir, x) for x in os.listdir(args.conf_dir) if x.endswith(".conf")])
 
     container_list= client.containers.list()
 
@@ -59,7 +61,7 @@ def regenerate(args, client):
     print "Container list is {}".format(container_list)
     hosts = sorted(set(filter(None,map(key, client.containers.list()))))
 
-    generate(args, args.dir, args.default_template, hosts)
+    generate(args, args.conf_dir, args.default_template, hosts)
     generate(args, "/usr/share/nginx/html", args.index_template, hosts)
 
     notify(args, client.containers.list())
@@ -111,7 +113,7 @@ def generate_vhost(args, label, containers):
     content = t.render(hostname=hostname, fromport = fromport, containers=c, c1=c[0])
 
     if content != "":
-        filename = "{}/{}_{}.conf".format(args.dir, hostname, fromport)
+        filename = "{}/{}_{}.conf".format(args.conf_dir, hostname, fromport)
         print "Printing to %s" % filename
         with open(filename, "w") as f:
             f.write(content)
@@ -121,12 +123,17 @@ def main():
     parser = argparse.ArgumentParser(description="Generate conf files from docker")
 
     parser.add_argument("-append-instance-id", help="append instance ID to directory", action='store_true')
-    parser.add_argument("-dir", help="directory into which to generate files", default="/etc/nginx/conf.d")
+    parser.add_argument("-conf-dir", help="directory into which to generate files", default="/etc/nginx/conf.d")
     parser.add_argument("-verbose", help="Verbose output", action='store_true')
     parser.add_argument("-vhost-template", help="Default VHOST template to use", default="vhost.conf")
     parser.add_argument("-default-template", help="Default server template to use", default="default.conf")
     parser.add_argument("-index-template", help="Default server template to use", default="index.html")
     args = parser.parse_args()
+
+    if args.append_instance_id:
+        response = urllib2.urlopen('http://169.254.169.254/latest/meta-data/instance-id')
+        id = response.read()
+        args.conf_dir = "{}/{}".format(args.conf_dir, id)
 
     while True:
         try:
