@@ -45,7 +45,7 @@ def regenerate(args, client):
 
         
     print "Container list is {}".format(container_list)
-    hosts = filter(None,map(key, client.containers.list()))
+    hosts = sorted(set(filter(None,map(key, client.containers.list()))))
 
     generate(args, args.dir, "default.conf", hosts)
     generate(args, "/usr/share/nginx/html", "index.html", hosts)
