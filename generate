@@ -36,9 +36,19 @@ def regenerate(args, client):
     # Remove all existing files
     map(os.remove, ["{}/{}".format(args.dir, x) for x in os.listdir(args.dir) if x.endswith(".conf")])
 
+    container_list= client.containers.list()
+
     # now generate more conf files
-    for label, containers in itertools.groupby(sorted(client.containers.list(), key=key), key):
-        generate(args, label, map(lambda x: client.api.inspect_container(x.id), containers))
+    groups = itertools.groupby(sorted(container_list, key=key), key)
+    for label, containers in groups:
+        generate_vhost(args, label, map(lambda x: client.api.inspect_container(x.id), containers))
+
+        
+    print "Container list is {}".format(container_list)
+    hosts = filter(None,map(key, client.containers.list()))
+
+    generate(args, args.dir, "default.conf", hosts)
+    generate(args, "/usr/share/nginx/html", "index.html", hosts)
 
     notify(args, client.containers.list())
 
@@ -50,8 +60,25 @@ def notify(args, containers):
 
     map(notify, [c for c in containers if "proxy.notify" in c.labels])
 
+def generate(args, dir, name, hosts):
 
-def generate(args, label, containers):
+    try:
+        t = jinjaenv.get_template(name)
+
+        print "Rendering {} with {}".format(name, hosts)
+
+        content = t.render(hosts=hosts)
+
+        if content != "":
+            filename = "{}/{}".format(dir, name)
+            print "Printing to %s" % filename
+            with open(filename, "w") as f:
+                f.write(content)
+    except TemplateNotFound:
+        print "No template found for {}.  Skipping".format(name)
+
+
+def generate_vhost(args, label, containers):
     if label is None:
         return
 
@@ -61,7 +88,7 @@ def generate(args, label, containers):
     try:
         t = jinjaenv.get_template("{}.conf".format(hostname))
     except TemplateNotFound:
-        t = jinjaenv.get_template("default.conf")
+        t = jinjaenv.get_template("vhost.conf")
 
     c = list(containers)
 
