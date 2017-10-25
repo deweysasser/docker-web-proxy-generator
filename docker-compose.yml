@@ -1,0 +1,29 @@
+web1:
+  image: nginx
+  command: bash -c 'echo $$(hostname) > /usr/share/nginx/html/index.html; nginx -g "daemon off;"'
+  labels:
+    - proxy.host=www.example.com
+
+web2:
+  image: nginx
+  command: bash -c 'echo $$(hostname) > /usr/share/nginx/html/index.html; nginx -g "daemon off;"'
+  labels:
+    - proxy.host=www.example.com
+
+
+proxy:
+  image: nginx
+  volumes:
+    - /etc/nginx/conf.d
+    - /usr/share/nginx/html
+  ports:
+    - 80:80
+  labels:
+    - proxy.notify
+
+updater:
+  build: .
+  volumes_from:
+    - proxy
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
