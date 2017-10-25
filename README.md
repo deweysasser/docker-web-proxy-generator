@@ -6,9 +6,11 @@ A container that
 * writes out NGINX config files to proxy traffic to containers
 * notifies NGINX to update itself
 
+Includes configuration templates for standard and SSL proxies.
 
-Usage
-=====
+
+Quick Start 
+===========
 
 Manual container cration
 ------------------------
@@ -71,3 +73,41 @@ updater:
     - /var/run/docker.sock:/var/run/docker.sock
 
 ```
+
+Extending the proxy
+===================
+
+Templates are defined in [Jinja2](http://jinja.pocoo.org/docs/2.9/).
+You can override or extend them by arranging for files to be placed in
+the `/templates` directory in the container (either via docker
+inheritance or volume mapping)
+
+There are command line options to override which templates are used in
+which context.  The default is:
+
+* vhost.conf -- used to generate a conf file for each virual host
+* default.conf -- create a default web server
+* index.html -- used to generate an index file for debugging or index purposes
+
+Alternatives include
+
+* vhost-ssl.conf -- generate an SSL terminating proxy (See SSL note)
+* default-ssl-redirect.conf -- generate a default server that
+  redirects all unencrypted traffic to https
+* index-ssl.conf -- generate an index.html that links to the https:// sites instead of http:// sites
+
+
+Using SSL
+=========
+
+If you are going to use SSL, you need to make sure you have your SSL
+configuration in the NGINX container in `/etc/nginx/ssl/ssl.conf`.
+
+Because of the way SSL works, you will need a certificate that is
+valid for all proxied sites.  You can generate this certificate with
+[LetsEncrypt](http://letsencrypt.org) or a commerical service.
+Documentation on how to do this would be a welcome contribution to
+this project (or I'll eventually get to it).
+
+We will eventually support automatic LetsEncrypt certificate
+generation.
