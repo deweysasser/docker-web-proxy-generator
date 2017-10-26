@@ -121,12 +121,12 @@ def generate_vhost(args, label, containers):
 def main():
     parser = argparse.ArgumentParser(description="Generate conf files from docker")
 
-    parser.add_argument("-conf-dir", help="directory into which to generate files", default="/etc/nginx/conf.d")
-    parser.add_argument("-verbose", help="Verbose output", action='store_true')
-    parser.add_argument("-vhost-template", help="Default VHOST template to use", default="vhost.conf")
-    parser.add_argument("-default-template", help="Default server template to use", default="default.conf")
-    parser.add_argument("-index-template", help="Default server template to use", default="index.html")
-    parser.add_argument("-once", help="Run only once, then stop", action='store_true')
+    parser.add_argument("--conf-dir", help="directory into which to generate files", default="/etc/nginx/conf.d")
+    parser.add_argument("--verbose", help="Verbose output", action='store_true')
+    parser.add_argument("--vhost-template", help="Default VHOST template to use", default="vhost.conf")
+    parser.add_argument("--default-template", help="Default server template to use", default="default.conf")
+    parser.add_argument("--index-template", help="Default server template to use", default="index.html")
+    parser.add_argument("--once", help="Run only once, then stop", action='store_true')
 
     args = parser.parse_args()
 
